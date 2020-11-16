@@ -42,10 +42,10 @@ final class Point
    public int getY() {
       return y;
    }
-   public static int distanceSquared(Point a, Point b){
-      int dX=a.x-b.x;
-      int dY=a.y-b.y;
-      return dX*dX+dY*dY;
 
+   public int heuristic(Point other){
+      return Math.abs(this.getX() - other.getX())
+              + Math.abs(this.getY() - other.getY());
    }
+
 }

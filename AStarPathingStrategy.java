@@ -13,161 +13,103 @@ import java.util.*;
 
 class AStarPathingStrategy implements PathingStrategy{
     private List<Point> computed_path;
-
+    private  Map<Point,Node> closedMap;
+    private  Map<Point,Node> openMap;
+    private Queue<Node> openList;
+    private Node startnode;
 
 
     public List<Point> computePath(Point start, Point end,
                                    Predicate<Point> canPassThrough,
                                    BiPredicate<Point, Point> withinReach,
                                    Function<Point, Stream<Point>> potentialNeighbors) {
-        //going to return
-        List<Point> computedPath_List = new ArrayList<>();
-        //closed list ( node holds points)
-        Map<Point,Node> closedMap = new HashMap<Point, Node>();
-        Map<Point,Node> openMap = new HashMap<Point, Node>();
-        //open list
-        Queue<Node> openList = new PriorityQueue<Node>(Comparator.comparingInt(Node::getF));
 
-        Node startNode = new Node(0,heuristic(start,end), 0 + heuristic(start,end), start, null);
+        this.computed_path = new ArrayList<>(); /// Return value
+        this.closedMap = new HashMap<Point, Node>(); // Initialize closed list
+        this.openMap = new HashMap<Point, Node>();
+        this.openList = new PriorityQueue<Node>(Comparator.comparingInt(Node::getF)); // Initialize open list
+        startnode = new Node(0, start.heuristic(end), 0 , start, null); // Define the start position
 
-        //add current to openlist
-        openList.add(startNode);
-        //curent node in loop
+        openList.add(startnode); // Add the start position to open list
         Node current = null;
 
-        //step 1 - loop while the open list is not empty
-        while (!openList.isEmpty()) {
 
-            //step 2 - getting a value with f_min
-            current = openList.remove();
+        while (!openList.isEmpty()) { // While open list isn't empty
 
-            //step 3 - checking if we have got to the end point
-            if (withinReach.test(current.getPosition(), end)){
-                //System.out.print("found path");
-                return computedPath(computedPath_List, current);
+            current = openList.remove(); // Get the node with lowest f
+
+            if (withinReach.test(current.getPos(), end)){ // If reached goal, return path
+                return computedPath(computed_path, current);
             }
 
-            //filter the neighbors and end in list
-            List<Point> neighbors = potentialNeighbors.apply(current.getPosition())
-                    .filter(canPassThrough)
+            List<Point> neighbors = potentialNeighbors.apply(current.getPos()) // Analyze what points can be
+                    .filter(canPassThrough)  // traveled to
                     .filter(p -> !p.equals(start) && !p.equals(end)).collect(Collectors.toList());
 
-            //List <Node> NodeNeighbors = transformPointToNode(neighbors,current.g+1, current, 0, current);
 
-            //step 6 - evaluating currents neighbors
-            for (Point neighbor: neighbors) {
-                //step 7 - if that neighbor is not on the closed list
-                if (!closedMap.containsKey(neighbor)) {
-
-                    int temp_g = current.getG() + 1; //that neigbor has to be one away from curren
-                    //step 8 - if neighbor is in the open list
-                    //that is we have gotten to it already
-                    if(openMap.containsKey(neighbor)) {
-
-                        //Step 8.1 - if we already have that neighbor on our open list but it has a butt
-                        if(temp_g < openMap.get(neighbor).getG()){ //if we have gotten to it already we need to update its G value
-                            //this is because we are using current.G()+1 so therefore our g can change dpeending on the neighbor
-                            Node betterNode = new Node(temp_g, heuristic(neighbor,end), heuristic(neighbor, end)+temp_g, neighbor, current);
-                            //adding betterNode with smaller G but same cell
-                            openList.add(betterNode);
-                            //removing the old node with the bigger G
+            for (Point neighbor: neighbors) { // For each neighbor
+                if (!closedMap.containsKey(neighbor)) { // If the neighbor hasn't been evaluated
+                    int g = current.getG() + 1;
+                    if(openMap.containsKey(neighbor)) { // If the neighbor is in open list
+                        if(g < openMap.get(neighbor).getG()){ // If g needs to be updated
+                            Node updated = new Node(g, neighbor.heuristic(end),
+                                    neighbor.heuristic(end) + g, neighbor, current);
                             openList.remove(openMap.get(neighbor));
-                            //replacing in the open map
-                            openMap.replace(neighbor,betterNode);
+                            openList.add(updated);
+                            openMap.replace(neighbor, updated);
                         }
-                    } //end of step 8
-                    //step 9 - if neighbor isnt in open list
-                    else {
-                        //create neighbor that has a g value one plug current
-                        Node neighborNode = new Node(current.getG()+1, heuristic(neighbor, end), current.getG()+ 1 + heuristic(neighbor,end) , neighbor, current);
-                        openList.add(neighborNode);
-                        openMap.put(neighbor,neighborNode);
                     }
-
-                } //end of step 7
-                //step 4 - remove the current node from the open list
-
-                //openList.remove(current);
-                //step 5 - add that current node to the closedList
-                closedMap.put(current.getPosition(),current);
-            } //end of step 6
-
-
-        }//end of step 1
-        System.out.println("returned nothing");
-        //return computedPath(computedPath_List,current);
-        return computedPath_List;
+                    else { // If the neighbor isn't already in open list
+                        Node newneighbor = new Node(current.getG()+1, neighbor.heuristic(end),
+                                current.getG()+ 1 + neighbor.heuristic(end) , neighbor, current);
+                        openList.add(newneighbor);
+                        openMap.put(neighbor,newneighbor);
+                    }
+                }
+                closedMap.put(current.getPos(),current);
+            }
+        }
+        return computed_path;
     }
 
 
-    public List<Point> computedPath(List<Point> compPath, Node winner)
+    public List<Point> computedPath(List<Point> compPath, Node end)
     {
-        compPath.add(winner.getPosition());
-        if(winner.getPrevNode() == null)
+        compPath.add(end.getPos());
+        if(end.getPrevNode() == null)
         {
             Collections.reverse(compPath);
             return compPath;
         }
-        //while prior sqaure isnt null
-        return computedPath(compPath, winner.getPrevNode());
+        return computedPath(compPath, end.getPrevNode());
 
     }
 
 
-    public void printOpenList(Queue<Node> openList) {
-
-        openList.stream().forEach(n->System.out.println(n));
-    }
-
-
-    //calualte the heuristic
-    public int heuristic(Point current, Point goal){
-//        int dX=current.x-b.x;
-//        int dY=a.y-a.y;
-//        return dX*dX+dY*dY;
-        return Point.distanceSquared(current,goal);
-    }
-
-
-    //Astar data structure
     class Node {
-        private int g; //distance from start
-        private int h; //heursitc distance
-        private int f; //total distance f=g+h
-        private Node prev_node; // prior node;
-        private Point position;
+        private int g;
+        private int h;
+        private int f;
+        private Node prev_node;
+        private Point pos;
 
-        public Node (int g, int h, int f, Point position, Node prev_node){
-            this.g = g; //no distance from the start
-            this.h = h; // heuristic distance from the gaol
-            this.f = f; //total distance f = g+h
-            this.prev_node = prev_node; //parent node;
-            this.position = position;
-            // this.currentPoint = currentPoint;
+        public Node (int g, int h, int f, Point pos, Node prev_node){
+            this.g = g;
+            this.h = h;
+            this.f = f;
+            this.prev_node = prev_node;
+            this.pos = pos;
         }
 
-        //used to map p -> node
-        public boolean containsPoint(Point p ){
 
-            if(this.position == p){
-                return true;
-            }
-            else{
-
-                return false;
-            }
-        }
-
-        //public int getG(){return g;}
         public int getH(){return h;}
         public int getF(){return f;}
         public void setG(int g){this.g = g;}
         public void setH(int h){this.h = h;}
         public int getG(){return g;}
-        public void setPostion(Point p){position = p;}
-        public Point getPosition(){return position;}
+        public void setPos(Point p){pos = p;}
+        public Point getPos(){return pos;}
         public Node getPrevNode(){return prev_node;}
-        public String toString(){return "getX() = "+ this.position.getX() + " getY() = " + this.position.getY(); }
 
     }
 }
