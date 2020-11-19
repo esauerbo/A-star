@@ -84,7 +84,6 @@ public class PathingMain extends PApplet
    {
       draw_grid();
       draw_path(foundPath);
-
       image(wyvern, wPos.x * TILE_SIZE, wPos.y * TILE_SIZE);
    }
 
@@ -172,9 +171,9 @@ public class PathingMain extends PApplet
          points = strategy.computePath(pos, goalPos,
                               p ->  withinBounds(p, grid) && grid[p.y][p.x] != GridValues.OBSTACLE,
                               (p1, p2) -> neighbors(p1,p2),
-                              PathingStrategy.CARDINAL_NEIGHBORS);
+                           //   PathingStrategy.CARDINAL_NEIGHBORS);
                               //DIAGONAL_NEIGHBORS);
-                              //DIAGONAL_CARDINAL_NEIGHBORS);
+                              PathingStrategy.DIAGONAL_CARDINAL_NEIGHBORS);
 
          if (points.size() == 0)
          {
@@ -184,7 +183,10 @@ public class PathingMain extends PApplet
 
          //pos = points.get(0);
          //path.add(pos);
+      System.out.println(pos);
+      System.out.println(goal);
          path.addAll(points);
+         System.out.println(path);
       //}
 
       return true;

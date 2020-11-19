@@ -27,24 +27,23 @@ class AStarPathingStrategy implements PathingStrategy{
         this.computed_path = new ArrayList<>(); /// Return value
         this.closedMap = new HashMap<Point, Node>(); // Initialize closed list
         this.openMap = new HashMap<Point, Node>();
-        this.openList = new PriorityQueue<Node>(Comparator.comparingInt(Node::getF)); // Initialize open list
+        this.openList = new PriorityQueue<Node>(Comparator.comparingInt(Node::getF)
+        .thenComparing(Node::getG)); // Initialize open list
         startnode = new Node(0, start.heuristic(end), 0 , start, null); // Define the start position
 
         openList.add(startnode); // Add the start position to open list
         Node current = null;
 
-
         while (!openList.isEmpty()) { // While open list isn't empty
-
             current = openList.remove(); // Get the node with lowest f
-
             if (withinReach.test(current.getPos(), end)){ // If reached goal, return path
                 return computedPath(computed_path, current);
             }
 
             List<Point> neighbors = potentialNeighbors.apply(current.getPos()) // Analyze what points can be
-                    .filter(canPassThrough)  // traveled to
-                    .filter(p -> !p.equals(start) && !p.equals(end)).collect(Collectors.toList());
+                    .filter(canPassThrough)  // travelled to
+                    .filter(p -> !p.equals(end) && !p.equals(start))
+                    .collect(Collectors.toList());
 
 
             for (Point neighbor: neighbors) { // For each neighbor
@@ -75,12 +74,12 @@ class AStarPathingStrategy implements PathingStrategy{
 
     public List<Point> computedPath(List<Point> compPath, Node end)
     {
-        compPath.add(end.getPos());
         if(end.getPrevNode() == null)
         {
             Collections.reverse(compPath);
             return compPath;
         }
+        compPath.add(end.getPos());
         return computedPath(compPath, end.getPrevNode());
 
     }
